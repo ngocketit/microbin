@@ -31,43 +31,41 @@ pub async fn getpasta(data: web::Data<AppState>, id: web::Path<String>) -> HttpR
     // remove expired pastas (including this one if needed)
     remove_expired(&mut pastas);
 
-    if let Some((index, _)) = pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
-        // increment read count
-        pastas[index].read_count = pastas[index].read_count + 1;
+    match pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
+        Some((index, _)) => {
+            // increment read count
+            pastas[index].read_count = pastas[index].read_count + 1;
 
-        // save the updated read count
-        save_to_file(&pastas);
+            // save the updated read count
+            save_to_file(&pastas);
 
-        // serve pasta in template
-        let response = HttpResponse::Ok().content_type("text/html").body(
-            PastaTemplate {
-                pasta: &pastas[index],
-                args: &ARGS,
-            }
-            .render()
-            .unwrap(),
-        );
+            // serve pasta in template
+            let response = HttpResponse::Ok().content_type("text/html").body(
+                PastaTemplate {
+                    pasta: &pastas[index],
+                    args: &ARGS,
+                }
+                .render()
+                .unwrap(),
+            );
 
-        // get current unix time in seconds
-        let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(n) => n.as_secs(),
-            Err(_) => {
-                log::error!("SystemTime before UNIX EPOCH!");
-                0
-            }
-        } as i64;
+            // get current unix time in seconds
+            let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                Ok(n) => n.as_secs(),
+                Err(_) => {
+                    log::error!("SystemTime before UNIX EPOCH!");
+                    0
+                }
+            } as i64;
 
-        // update last read time
-        pastas[index].last_read = timenow;
-
-        return response;
+            // update last read time
+            pastas[index].last_read = timenow;
+            response
+        }
+        _ => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(ErrorTemplate { args: &ARGS }.render().unwrap()),
     }
-
-    // otherwise
-    // send pasta not found error
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(ErrorTemplate { args: &ARGS }.render().unwrap())
 }
 
 #[get("/url/{id}")]
@@ -84,15 +82,14 @@ pub async fn redirecturl(data: web::Data<AppState>, id: web::Path<String>) -> Ht
     // remove expired pastas (including this one if needed)
     remove_expired(&mut pastas);
 
-    if let Some((index, _)) = pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
-        // increment read count
-        pastas[index].read_count = pastas[index].read_count + 1;
+    match pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
+        Some((index, _)) if pastas[index].pasta_type == "url" => {
+            // increment read count
+            pastas[index].read_count = pastas[index].read_count + 1;
 
-        // save the updated read count
-        save_to_file(&pastas);
+            // save the updated read count
+            save_to_file(&pastas);
 
-        // send redirect if it's a url pasta
-        if pastas[index].pasta_type == "url" {
             let response = HttpResponse::Found()
                 .append_header(("Location", String::from(&pastas[index].content)))
                 .finish();
@@ -110,19 +107,11 @@ pub async fn redirecturl(data: web::Data<AppState>, id: web::Path<String>) -> Ht
             pastas[index].last_read = timenow;
 
             return response;
-        // send error if we're trying to open a non-url pasta as a redirect
-        } else {
-            HttpResponse::Ok()
-                .content_type("text/html")
-                .body(ErrorTemplate { args: &ARGS }.render().unwrap());
         }
+        _ => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(ErrorTemplate { args: &ARGS }.render().unwrap()),
     }
-
-    // otherwise
-    // send pasta not found error
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(ErrorTemplate { args: &ARGS }.render().unwrap())
 }
 
 #[get("/raw/{id}")]
@@ -139,30 +128,29 @@ pub async fn getrawpasta(data: web::Data<AppState>, id: web::Path<String>) -> St
     // remove expired pastas (including this one if needed)
     remove_expired(&mut pastas);
 
-    if let Some((index, _)) = pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
-        // increment read count
-        pastas[index].read_count = pastas[index].read_count + 1;
+    match pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
+        Some((index, _)) => {
+            // increment read count
+            pastas[index].read_count = pastas[index].read_count + 1;
 
-        // get current unix time in seconds
-        let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(n) => n.as_secs(),
-            Err(_) => {
-                log::error!("SystemTime before UNIX EPOCH!");
-                0
-            }
-        } as i64;
+            // get current unix time in seconds
+            let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
+                Ok(n) => n.as_secs(),
+                Err(_) => {
+                    log::error!("SystemTime before UNIX EPOCH!");
+                    0
+                }
+            } as i64;
 
-        // update last read time
-        pastas[index].last_read = timenow;
+            // update last read time
+            pastas[index].last_read = timenow;
 
-        // save the updated read count
-        save_to_file(&pastas);
+            // save the updated read count
+            save_to_file(&pastas);
 
-        // send raw content of pasta
-        return pastas[index].content.to_owned();
+            // send raw content of pasta
+            pastas[index].content.to_owned()
+        }
+        _ => String::from("Pasta not found! :-("),
     }
-
-    // otherwise
-    // send pasta not found error as raw text
-    String::from("Pasta not found! :-(")
 }
