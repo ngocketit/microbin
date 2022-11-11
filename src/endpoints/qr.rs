@@ -30,39 +30,35 @@ pub async fn getqr(data: web::Data<AppState>, id: web::Path<String>) -> HttpResp
     // remove expired pastas (including this one if needed)
     remove_expired(&mut pastas);
 
-    // find the index of the pasta in the collection based on u64 id
-    let mut index: usize = 0;
-    let mut found: bool = false;
-    for (i, pasta) in pastas.iter().enumerate() {
-        if pasta.id == u64_id {
-            index = i;
-            found = true;
-            break;
+    match pastas
+        .iter()
+        .enumerate()
+        .find(|(_, pasta)| pasta.id == u64_id)
+    {
+        Some((index, _)) => {
+            // generate the QR code as an SVG - if its a file or text pastas, this will point to the /pasta endpoint, otherwise to the /url endpoint, essentially directly taking the user to the url stored in the pasta
+            let svg: String = match pastas[index].pasta_type.as_str() {
+                "url" => {
+                    misc::string_to_qr_svg(format!("{}/url/{}", &ARGS.public_path, &id).as_str())
+                }
+                _ => {
+                    misc::string_to_qr_svg(format!("{}/pasta/{}", &ARGS.public_path, &id).as_str())
+                }
+            };
+
+            // serve qr code in template
+            HttpResponse::Ok().content_type("text/html").body(
+                QRTemplate {
+                    qr: &svg,
+                    pasta: &pastas[index],
+                    args: &ARGS,
+                }
+                .render()
+                .unwrap(),
+            )
         }
+        _ => HttpResponse::Ok()
+            .content_type("text/html")
+            .body(ErrorTemplate { args: &ARGS }.render().unwrap()),
     }
-
-    if found {
-        // generate the QR code as an SVG - if its a file or text pastas, this will point to the /pasta endpoint, otherwise to the /url endpoint, essentially directly taking the user to the url stored in the pasta
-        let svg: String = match pastas[index].pasta_type.as_str() {
-            "url" => misc::string_to_qr_svg(format!("{}/url/{}", &ARGS.public_path, &id).as_str()),
-            _ => misc::string_to_qr_svg(format!("{}/pasta/{}", &ARGS.public_path, &id).as_str()),
-        };
-
-        // serve qr code in template
-        return HttpResponse::Ok().content_type("text/html").body(
-            QRTemplate {
-                qr: &svg,
-                pasta: &pastas[index],
-                args: &ARGS,
-            }
-            .render()
-            .unwrap(),
-        );
-    }
-
-    // otherwise
-    // send pasta not found error
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(ErrorTemplate { args: &ARGS }.render().unwrap())
 }
