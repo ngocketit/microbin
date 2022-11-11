@@ -6,7 +6,6 @@ use crate::util::animalnumbers::to_u64;
 use crate::util::hashids::to_u64 as hashid_to_u64;
 use crate::util::misc::remove_expired;
 use crate::AppState;
-use actix_web::rt::time;
 use actix_web::{get, web, HttpResponse};
 use askama::Template;
 use std::time::{SystemTime, UNIX_EPOCH};
