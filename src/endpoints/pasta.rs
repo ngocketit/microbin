@@ -31,18 +31,7 @@ pub async fn getpasta(data: web::Data<AppState>, id: web::Path<String>) -> HttpR
     // remove expired pastas (including this one if needed)
     remove_expired(&mut pastas);
 
-    // find the index of the pasta in the collection based on u64 id
-    let mut index: usize = 0;
-    let mut found: bool = false;
-    for (i, pasta) in pastas.iter().enumerate() {
-        if pasta.id == id {
-            index = i;
-            found = true;
-            break;
-        }
-    }
-
-    if found {
+    if let Some((index, _)) = pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
         // increment read count
         pastas[index].read_count = pastas[index].read_count + 1;
 
