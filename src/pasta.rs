@@ -3,11 +3,11 @@ use chrono::{Datelike, Local, TimeZone, Timelike};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::args::ARGS;
 use crate::util::animalnumbers::to_animal_names;
 use crate::util::hashids::to_hashids;
+use crate::util::misc::current_time;
 use crate::util::syntaxhighlighter::html_highlight;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -85,13 +85,7 @@ impl Pasta {
 
     pub fn last_read_time_ago_as_string(&self) -> String {
         // get current unix time in seconds
-        let timenow = match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(n) => n.as_secs(),
-            Err(_) => {
-                log::error!("SystemTime before UNIX EPOCH!");
-                0
-            }
-        } as i64;
+        let timenow = current_time();
 
         // get seconds since last read and convert it to days
         let days = ((timenow - self.last_read) / 86400) as u16;
@@ -123,13 +117,7 @@ impl Pasta {
 
     pub fn last_read_days_ago(&self) -> u16 {
         // get current unix time in seconds
-        let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
-            Ok(n) => n.as_secs(),
-            Err(_) => {
-                log::error!("SystemTime before UNIX EPOCH!");
-                0
-            }
-        } as i64;
+        let timenow = current_time();
 
         // get seconds since last read and convert it to days
         return ((timenow - self.last_read) / 86400) as u16;

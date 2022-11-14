@@ -7,15 +7,20 @@ use std::fs;
 
 use crate::{dbio, Pasta};
 
-pub fn remove_expired(pastas: &mut Vec<Pasta>) {
-    // get current time - this will be needed to check which pastas have expired
-    let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
+pub fn current_time() -> i64 {
+    let now = match SystemTime::now().duration_since(UNIX_EPOCH) {
         Ok(n) => n.as_secs(),
         Err(_) => {
             log::error!("SystemTime before UNIX EPOCH!");
             0
         }
     } as i64;
+    now
+}
+
+pub fn remove_expired(pastas: &mut Vec<Pasta>) {
+    // get current time - this will be needed to check which pastas have expired
+    let timenow = current_time();
 
     pastas.retain(|p| {
         // keep if:
