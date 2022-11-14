@@ -85,7 +85,7 @@ impl Pasta {
 
     pub fn last_read_time_ago_as_string(&self) -> String {
         // get current unix time in seconds
-        let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
+        let timenow = match SystemTime::now().duration_since(UNIX_EPOCH) {
             Ok(n) => n.as_secs(),
             Err(_) => {
                 log::error!("SystemTime before UNIX EPOCH!");
