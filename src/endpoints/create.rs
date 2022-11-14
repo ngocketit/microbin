@@ -2,7 +2,7 @@ use crate::dbio::save_to_file;
 use crate::pasta::PastaFile;
 use crate::util::animalnumbers::to_animal_names;
 use crate::util::hashids::to_hashids;
-use crate::util::misc::is_valid_url;
+use crate::util::misc::{current_time, is_valid_url};
 use crate::{AppState, Pasta, ARGS};
 use actix_multipart::Multipart;
 use actix_web::{get, web, Error, HttpResponse, Responder};
@@ -12,7 +12,6 @@ use futures::TryStreamExt;
 use log::warn;
 use rand::Rng;
 use std::io::Write;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -39,13 +38,7 @@ pub async fn create(
 
     let mut pastas = data.pastas.lock().unwrap();
 
-    let timenow: i64 = match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(n) => n.as_secs(),
-        Err(_) => {
-            log::error!("SystemTime before UNIX EPOCH!");
-            0
-        }
-    } as i64;
+    let timenow = current_time();
 
     let mut new_pasta = Pasta {
         id: rand::thread_rng().gen::<u16>() as u64,

@@ -3,9 +3,7 @@ use actix_web::{get, web, HttpResponse};
 use crate::args::ARGS;
 use crate::endpoints::errors::ErrorTemplate;
 use crate::pasta::PastaFile;
-use crate::util::animalnumbers::to_u64;
-use crate::util::hashids::to_u64 as hashid_to_u64;
-use crate::util::misc::remove_expired;
+use crate::util::misc::{get_pasta_id, remove_expired};
 use crate::AppState;
 use askama::Template;
 use std::fs;
@@ -20,11 +18,7 @@ pub async fn remove(data: web::Data<AppState>, id: web::Path<String>) -> HttpRes
 
     let mut pastas = data.pastas.lock().unwrap();
 
-    let id = if ARGS.hash_ids {
-        hashid_to_u64(&*id).unwrap_or(0)
-    } else {
-        to_u64(&*id.into_inner()).unwrap_or(0)
-    };
+    let id = get_pasta_id(id);
 
     for (i, pasta) in pastas.iter().enumerate() {
         if pasta.id == id {

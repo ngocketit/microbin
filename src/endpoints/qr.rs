@@ -1,9 +1,7 @@
 use crate::args::{Args, ARGS};
 use crate::endpoints::errors::ErrorTemplate;
 use crate::pasta::Pasta;
-use crate::util::animalnumbers::to_u64;
-use crate::util::hashids::to_u64 as hashid_to_u64;
-use crate::util::misc::{self, remove_expired};
+use crate::util::misc::{self, get_pasta_id, remove_expired};
 use crate::AppState;
 use actix_web::{get, web, HttpResponse};
 use askama::Template;
@@ -21,20 +19,12 @@ pub async fn getqr(data: web::Data<AppState>, id: web::Path<String>) -> HttpResp
     // get access to the pasta collection
     let mut pastas = data.pastas.lock().unwrap();
 
-    let u64_id = if ARGS.hash_ids {
-        hashid_to_u64(&id).unwrap_or(0)
-    } else {
-        to_u64(&id).unwrap_or(0)
-    };
+    let id = get_pasta_id(id);
 
     // remove expired pastas (including this one if needed)
     remove_expired(&mut pastas);
 
-    match pastas
-        .iter()
-        .enumerate()
-        .find(|(_, pasta)| pasta.id == u64_id)
-    {
+    match pastas.iter().enumerate().find(|(_, pasta)| pasta.id == id) {
         Some((index, _)) => {
             // generate the QR code as an SVG - if its a file or text pastas, this will point to the /pasta endpoint, otherwise to the /url endpoint, essentially directly taking the user to the url stored in the pasta
             let svg: String = match pastas[index].pasta_type.as_str() {

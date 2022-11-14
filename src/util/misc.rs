@@ -1,10 +1,13 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::args::ARGS;
+use actix_web::web;
 use linkify::{LinkFinder, LinkKind};
 use qrcode_generator::QrCodeEcc;
 use std::fs;
 
+use crate::util::animalnumbers::to_u64;
+use crate::util::hashids::to_u64 as hashid_to_u64;
 use crate::{dbio, Pasta};
 
 pub fn current_time() -> i64 {
@@ -16,6 +19,15 @@ pub fn current_time() -> i64 {
         }
     } as i64;
     now
+}
+
+pub fn get_pasta_id(id: web::Path<String>) -> u64 {
+    let id = if ARGS.hash_ids {
+        hashid_to_u64(&*id).unwrap_or(0)
+    } else {
+        to_u64(&*id.into_inner()).unwrap_or(0)
+    };
+    id
 }
 
 pub fn remove_expired(pastas: &mut Vec<Pasta>) {
